@@ -13,17 +13,17 @@ const debug = Debug('messengerbot');
  * FB Messenger Bot API wrapper.
  *
  * @example <caption>EventEmitter</caption>
- * const LineBot = require('linebot');
- * const bot = new LineBot(configs);
+ * const FbBot = require('messengerbot');
+ * const bot = new FbBot(configs);
  *
  * bot.on('message', (result) => {
- *   console.log('You got a message!', result);
+ *   console.log('You got a message!', result.message);
  * });
  *
  * bot.listen(3000);
  *
  * @extends { EventEmitter }
- * @see https://developers.line.me/bot-api/api-reference
+ * @see https://developers.facebook.com/docs/messenger-platform
  */
 class MessengerBot extends EventEmitter {
   /**
@@ -42,8 +42,8 @@ class MessengerBot extends EventEmitter {
     /**
      * Configuration.
      * @type     { Object }
-     * @property { string } botConfig.channelID      Channel ID
-     * @property { string } botConfig.channelSecret  Channel secret
+     * @property { string } params.pageAccessToken  Page Access Token
+     * @property { string } params.verifyToken      Verify Token
      */
     this.botConfig = {
       pageAccessToken: pageAccessToken,
@@ -88,8 +88,12 @@ class MessengerBot extends EventEmitter {
       if (req.json && req.json.entry[0] && req.json.entry[0].messaging) {
         this.emit('receive', req.json.entry[0].messaging);
         for (let result of req.json.entry[0].messaging) {
-          if (result.text) {
-            this.emit('message', result);
+          if (result.message.text) {
+            this.emit('message', {
+              sender: result.sender,
+              message: result.message.text,
+              raw: result
+            });
           }
         }
       }
@@ -138,8 +142,7 @@ class MessengerBot extends EventEmitter {
    * Adds the listener function to the end of the listeners array for the event named eventName.
    * @see https://nodejs.org/api/events.html#events_emitter_on_eventname_listener
    * @param  { ...any } params   https://nodejs.org/api/events.html#events_emitter_on_eventname_listener
-   * @listens { message }        Listen message. https://developers.line.me/bot-api/api-reference#sending_message
-   * @listens { operation }      Listen operation. https://developers.line.me/bot-api/api-reference#receiving_operations
+   * @listens { message }        Listen message. https://developers.facebook.com/docs/messenger-platform/webhook-reference#received_message
    */
   on (...params) {
     super.on(...params);

@@ -1,7 +1,7 @@
 {
   "name": "messengerbot",
   "description": "FB Messenger BOT API wrapper for Node.js",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Ferrari Lee <shiyung@gmail.com>",
   "dependencies": {
     "axios": "^0.9.1",
@@ -22,6 +22,12 @@
     "fixpack": "^2.3.0",
     "npm-run-all": "^1.7.0"
   },
+  "files": [
+    "README.md",
+    "index.js",
+    "package.json",
+    "dist"
+  ],
   "keywords": [
     "bot",
     "facebook"

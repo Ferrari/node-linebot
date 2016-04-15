@@ -1,5 +1,5 @@
 import LINE_CONST from './line-const.js';
-import { createHmac } from 'crypto';
+// import { createHmac } from 'crypto';
 /**
  * @external { EventEmitter } https://nodejs.org/api/events.html
  */
@@ -86,18 +86,19 @@ class MessengerBot extends EventEmitter {
     });
 
     this._express.all('*', (req, res, next) => {
-      if (!req.json || !req.json.result) {
+      if (!req.json || !req.json.entry[0] || !res.json.entry[0].messaging) {
         return next(new Error('Invalid JSON'));
       }
       res.status(200);
-      this.emit('receive', req.json.result);
-      for (let result of req.json.result) {
-        if (result.eventType === LINE_CONST.EVENT_TYPE.MESSAGE) {
-          this.emit('message', result);
-        }
-        if (result.eventType === LINE_CONST.EVENT_TYPE.OPERATION) {
-          this.emit('operation', result);
-        }
+      this.emit('receive', req.json.entry[0].messaging);
+      for (let result of req.json.entry[0].messaging) {
+        this.emit('message', result);
+        // if (result.eventType === LINE_CONST.EVENT_TYPE.MESSAGE) {
+        //   this.emit('message', result);
+        // }
+        // if (result.eventType === LINE_CONST.EVENT_TYPE.OPERATION) {
+        //   this.emit('operation', result);
+        // }
       }
       next();
     });
@@ -109,27 +110,31 @@ class MessengerBot extends EventEmitter {
   }
 
   /** @private */
-  _checkSignature ({ signature, body }) {
-    const hmac = createHmac('sha256', this.botConfig.channelSecret);
-    hmac.update(body);
-    const calcResult = hmac.digest('base64');
-    return ( calcResult === signature );
-  }
+  // _checkSignature ({ signature, body }) {
+  //   const hmac = createHmac('sha256', this.botConfig.channelSecret);
+  //   hmac.update(body);
+  //   const calcResult = hmac.digest('base64');
+  //   return ( calcResult === signature );
+  // }
 
   /**
    * Post text.
-   * @see https://developers.line.me/bot-api/api-reference#sending_message_text
+   * @see https://developers.facebook.com/docs/messenger-platform/webhook-reference#message_delivery
    * @param  { Object }         params
-   * @param  { string }         [params.user]   MID of user you send to.
-   * @param  { Array<string> }  [params.users]  MIDs of users if you send to more than one people.
+   * @param  { string }         params.user     ID of user you send to.
    * @param  { string }         params.message  Message you send.
    * @return { Promise }
    */
-  postText ({ user, users, message }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      text: message,
-      contentType: LINE_CONST.CONTENT_TYPE.TEXT
+  postText ({ user, message }) {
+    return this._fetcher.post({
+      recipient: user,
+      message: {
+        text: message
+      }
+      // contentType: LINE_CONST.CONTENT_TYPE.TEXT
+    }).catch((err) => {
+      console.error(err.stack);
+      return Promise.reject(err);
     });
   }
 
@@ -143,14 +148,14 @@ class MessengerBot extends EventEmitter {
    * @param  { string }         params.thumbnailUrl  Thumbnail URL (JPEG).
    * @return { Promise }
    */
-  postImage ({ user, users, originalUrl, thumbnailUrl }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      originalContentUrl: originalUrl,
-      previewImageUrl: thumbnailUrl,
-      contentType: LINE_CONST.CONTENT_TYPE.IMAGE
-    });
-  }
+  // postImage ({ user, users, originalUrl, thumbnailUrl }) {
+  //   return this._postMessage({
+  //     userList: (users) ? users : [ user ],
+  //     originalContentUrl: originalUrl,
+  //     previewImageUrl: thumbnailUrl,
+  //     contentType: LINE_CONST.CONTENT_TYPE.IMAGE
+  //   });
+  // }
 
   /**
    * Post video.
@@ -162,14 +167,14 @@ class MessengerBot extends EventEmitter {
    * @param  { string }         params.thumbnailUrl  Thumbnail URL (JPEG).
    * @return { Promise }
    */
-  postVideo ({ user, users, originalUrl, thumbnailUrl }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      originalContentUrl: originalUrl,
-      previewImageUrl: thumbnailUrl,
-      contentType: LINE_CONST.CONTENT_TYPE.VIDEO
-    });
-  }
+  // postVideo ({ user, users, originalUrl, thumbnailUrl }) {
+  //   return this._postMessage({
+  //     userList: (users) ? users : [ user ],
+  //     originalContentUrl: originalUrl,
+  //     previewImageUrl: thumbnailUrl,
+  //     contentType: LINE_CONST.CONTENT_TYPE.VIDEO
+  //   });
+  // }
 
   /**
    * Post audio.
@@ -181,16 +186,16 @@ class MessengerBot extends EventEmitter {
    * @param  { string }         params.audioMillisec  Audio length (milliseconds).
    * @return { Promise }
    */
-  postAudio ({ user, users, originalUrl, audioMillisec }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      originalContentUrl: originalUrl,
-      contentMetadata: {
-        AUDLEN: audioMillisec
-      },
-      contentType: LINE_CONST.CONTENT_TYPE.AUDIO
-    });
-  }
+  // postAudio ({ user, users, originalUrl, audioMillisec }) {
+  //   return this._postMessage({
+  //     userList: (users) ? users : [ user ],
+  //     originalContentUrl: originalUrl,
+  //     contentMetadata: {
+  //       AUDLEN: audioMillisec
+  //     },
+  //     contentType: LINE_CONST.CONTENT_TYPE.AUDIO
+  //   });
+  // }
 
   /**
    * Post location.
@@ -203,18 +208,18 @@ class MessengerBot extends EventEmitter {
    * @param  { string }         params.longitude     Longitude of location.
    * @return { Promise }
    */
-  postLocation ({ user, users, locationName, latitude, longitude }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      text: locationName,
-      location: {
-        title: locationName,
-        latitude: latitude,
-        longitude: longitude
-      },
-      contentType: LINE_CONST.CONTENT_TYPE.LOCATION
-    });
-  }
+  // postLocation ({ user, users, locationName, latitude, longitude }) {
+  //   return this._postMessage({
+  //     userList: (users) ? users : [ user ],
+  //     text: locationName,
+  //     location: {
+  //       title: locationName,
+  //       latitude: latitude,
+  //       longitude: longitude
+  //     },
+  //     contentType: LINE_CONST.CONTENT_TYPE.LOCATION
+  //   });
+  // }
 
   /**
    * Post Sticker.
@@ -227,17 +232,17 @@ class MessengerBot extends EventEmitter {
    * @param  { string }         [params.stkver]  Version number of the sticker.
    * @return { Promise }
    */
-  postSticker ({ user, users, stkid, stkpkgid, stkver }) {
-    return this._postMessage({
-      userList: (users) ? users : [ user ],
-      contentMetadata: {
-        STKID: stkid.toString(),
-        STKPKGID: stkpkgid.toString(),
-        STKVER: (stkver) ? stkver.toString() : undefined
-      },
-      contentType: LINE_CONST.CONTENT_TYPE.STICKER
-    });
-  }
+  // postSticker ({ user, users, stkid, stkpkgid, stkver }) {
+  //   return this._postMessage({
+  //     userList: (users) ? users : [ user ],
+  //     contentMetadata: {
+  //       STKID: stkid.toString(),
+  //       STKPKGID: stkpkgid.toString(),
+  //       STKVER: (stkver) ? stkver.toString() : undefined
+  //     },
+  //     contentType: LINE_CONST.CONTENT_TYPE.STICKER
+  //   });
+  // }
 
   /**
    * Post content you make.
@@ -245,70 +250,68 @@ class MessengerBot extends EventEmitter {
    * @param  { Object }                  content  https://developers.line.me/bot-api/api-reference#sending_message
    * @return { Promise }
    */
-  postContent (users, content) {
-    const args = Object.assign(content, {
-      userList: (Array.isArray(users)) ? users : [ users ]
-    });
-    return this._postMessage(args);
-  }
+  // postContent (users, content) {
+  //   const args = Object.assign(content, {
+  //     userList: (Array.isArray(users)) ? users : [ users ]
+  //   });
+  //   return this._postMessage(args);
+  // }
 
   /** @private */
-  _postMessage ({
-    userList, text, contentMetadata,
-    contentType = LINE_CONST.CONTENT_TYPE.TEXT,
-    originalContentUrl, previewImageUrl, location
-  }) {
-    return this._fetcher.post('/v1/events', {
-      to: userList,
-      toChannel: 1383378250,
-      eventType: LINE_CONST.SEND_MESSAGE,
-      content: {
-        contentType: contentType,
-        toType: 1,
-        text: text,
-        originalContentUrl: originalContentUrl,
-        previewImageUrl: previewImageUrl,
-        location: location,
-        contentMetadata: contentMetadata
-      }
-    })
-    .catch((err) => {
-      console.error(err.stack);
-      return Promise.reject(err);
-    });
-  }
+  // _postMessage ({
+  //   recipient, message
+  // }) {
+  //   return this._fetcher.post('/me/messages', {
+  //     to: userList,
+  //     toChannel: 1383378250,
+  //     eventType: LINE_CONST.SEND_MESSAGE,
+  //     content: {
+  //       contentType: contentType,
+  //       toType: 1,
+  //       text: text,
+  //       originalContentUrl: originalContentUrl,
+  //       previewImageUrl: previewImageUrl,
+  //       location: location,
+  //       contentMetadata: contentMetadata
+  //     }
+  //   })
+  //   .catch((err) => {
+  //     console.error(err.stack);
+  //     return Promise.reject(err);
+  //   });
+  // }
 
   /**
    * Fetch user profile from MID.
    * @param  { string }           MID  MID of user.
    * @return { Promise<Object> }       Return user profile.
    */
-  fetchProfileFromMID ( MID ) {
-    return this.fetchProfileFromMIDList([ MID ])
-    .then((contacts) => contacts[0])
-    .catch((err) => {
-      console.error(err.stack);
-      return Promise.reject(err);
-    });
-  }
+  // fetchProfileFromMID ( MID ) {
+  //   return this.fetchProfileFromMIDList([ MID ])
+  //   .then((contacts) => contacts[0])
+  //   .catch((err) => {
+  //     console.error(err.stack);
+  //     return Promise.reject(err);
+  //   });
+  // }
 
   /**
    * Fetch user profile from MID.
    * @param  { Array<string> }    MIDList  MIDs of users.
    * @return { Promise<Object> }           Return user profile.
    */
-  fetchProfileFromMIDList ( MIDList ) {
-    return this._fetcher.get('/v1/profiles', {
-      params: {
-        mids: MIDList.join(',')
-      }
-    })
-    .then((res) => res.data.contacts)
-    .catch((err) => {
-      console.error(err.stack);
-      return Promise.reject(err);
-    });
-  }
+  // fetchProfileFromMIDList ( MIDList ) {
+  //   return this._fetcher.get('/v1/profiles', {
+  //     params: {
+  //       mids: MIDList.join(',')
+  //     }
+  //   })
+  //   .then((res) => res.data.contacts)
+  //   .catch((err) => {
+  //     console.error(err.stack);
+  //     return Promise.reject(err);
+  //   });
+  // }
 
   /**
    * Binds and listens for connections on the specified host and port.

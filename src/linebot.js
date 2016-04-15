@@ -24,43 +24,43 @@ import bodyParser from 'body-parser';
  * @extends { EventEmitter }
  * @see https://developers.line.me/bot-api/api-reference
  */
-class LineBot extends EventEmitter {
+class MessengerBot extends EventEmitter {
   /**
    * Constructor
    * @param  { Object } params
-   * @param  { string } params.channelID     Channel ID
-   * @param  { string } params.channelSecret Channel secret
-   * @param  { string } params.MID           MID
+   * @param  { string } params.pageAccessToken  Page Access Token
+   * @param  { string } params.verifyToken      Verify Token
    */
-  constructor ({ channelID, channelSecret, MID }) {
+  constructor ({ pageAccessToken, verifyToken }) {
     super();
-    this._init({ channelID, channelSecret, MID });
+    this._init({ pageAccessToken, verifyToken });
   }
 
   /** @private */
-  _init ({ channelID, channelSecret, MID }) {
+  _init ({ pageAccessToken, verifyToken }) {
     /**
      * Configuration.
      * @type     { Object }
      * @property { string } botConfig.channelID      Channel ID
      * @property { string } botConfig.channelSecret  Channel secret
-     * @property { string } botConfig.MID            MID
      */
     this.botConfig = {
-      channelID: channelID,
-      channelSecret: channelSecret,
-      MID: MID
+      pageAccessToken: pageAccessToken,
+      verifyToken: verifyToken
     };
     Object.freeze(this.botConfig);
 
     /** @private */
     this._fetcher = axios.create({
-      baseURL: 'https://trialbot-api.line.me/',
-      headers: {
-        'X-Line-ChannelID': this.botConfig.channelID, // Channel ID
-        'X-Line-ChannelSecret': this.botConfig.channelSecret, // Channel secret
-        'X-Line-Trusted-User-With-ACL': this.botConfig.MID // MID
+      baseURL: 'https://graph.facebook.com/v2.6/',
+      params: {
+        access_token: this.botConfig.pageAccessToken
       }
+      // headers: {
+      //   'X-Line-ChannelID': this.botConfig.channelID, // Channel ID
+      //   'X-Line-ChannelSecret': this.botConfig.channelSecret, // Channel secret
+      //   'X-Line-Trusted-User-With-ACL': this.botConfig.MID // MID
+      // }
     });
 
     /** @private */
@@ -69,10 +69,11 @@ class LineBot extends EventEmitter {
     this._express.use(bodyParser.raw({ type: '*/*' }));
 
     this._express.use((req, res, next) => {
-      const isValid = this._checkSignature({
-        signature: req.header('X-LINE-ChannelSignature'),
-        body: req.body
-      });
+      const isValid = (this.botConfig.verifyToken === req.query['hub.verify_token']);
+      // const isValid = this._checkSignature({
+      //   signature: req.header('X-LINE-ChannelSignature'),
+      //   body: req.body
+      // });
       if (!isValid) return next(new Error('Invalid request.'));
       else return next();
     });
@@ -350,4 +351,4 @@ class LineBot extends EventEmitter {
   }
 }
 
-export default LineBot;
+export default MessengerBot;

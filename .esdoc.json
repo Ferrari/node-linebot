@@ -1,7 +1,7 @@
 {
   "source": "./src",
   "destination": "./doc",
-  "title": "@3846masa/linebot | ESDoc",
+  "title": "MessengerBot | ESDoc",
   "plugins": [{
     "name": "esdoc-importpath-plugin",
     "option": {
